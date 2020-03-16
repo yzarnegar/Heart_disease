@@ -1,1 +1,118 @@
 
+Data exploration
+SAheart<-read.table("http://www-stat.stanford.edu/~tibs/ElemStatLearn/datasets/SAheart.data",sep=",",head=T,row.names=1)
+SAheart
+names(SAheart)
+summary(SAheart)
+pair(SAheart)
+temp <- layout(matrix(1:8, nrow=2, byrow=T)) ## 2 by 4.
+ layout.show(temp)
+ for(j in c(1:4,6:9))
+   qqnorm(SAheart[,j], notch=T, col="steelblue", main=names(SAheart)[j])
+           qqline(SAheart[,j])
+
+pairs(SAheart[,c(1:4,6:9)], cex=0.5, col="green", col.axis="green")
+for(j in c(1:4,6:9))
+chisq.out.test(SAheart[,j], opposite = FALSE)
+gg<-cor(SAheart[c(1:4,6:9)],SAheart[c(1:4,6:9)],method = c("pearson", "kendall", "spearman"))
+image(1:8, 1:8, gg, xaxt="n", yaxt="n",xlab="", ylab="", main="Spearman Correlation",col=terrain.colors(100))
+axis(1,at=1:8, labels=names(SAheart)[c(1:4,6:9)],
+tick=F, cex.axis=0.45) ## Add axis at the bottom.
+ axis(2,at=1:8, labels=names(SAheart)[c(1:4,6:9)],
+ tick=F, cex.axis=0.45) ## Add axis on the left. 
+for(i in 1:8)
+ for(j in 1:8)
+ text(i, j, as.character(base::round(gg[i,j],digits=2)), cex=0.7)
+
+####Logistic regression
+#######################
+res.glm=glm(chd~.,family=binomial(link="cloglog"),data=SAheart)##cloglog, logit, probit
+res.glm
+res.glm$coef
+summary(res.glm)
+anova(res.glm, test="Chisq")
+hosmerlem = function(y, yhat, g=10) {
+  cutyhat = cut(yhat,
+     breaks = quantile(yhat, probs=seq(0,
+       1, 1/g)), include.lowest=TRUE)
+  obs = xtabs(cbind(1 - y, y) ~ cutyhat)
+  expect = xtabs(cbind(1 - yhat, yhat) ~ cutyhat)
+  chisq = sum((obs - expect)^2/expect)
+  P = 1 - pchisq(chisq, g - 2)
+  return(list(chisq=chisq,p.value=P))
+}
+hosmerlem(y=SAheart$chd, yhat=fitted(res.glm))
+library(boot)
+cv.err.5 <- cv.glm(SAheart, res.glm, K = 5)
+cv.err.5
+step <- step(res.glm, direction="both",k=2)
+step
+step$anova # display results
+library(bestglm)
+bestglm(SAheart,  family=binomial(link="logit"), IC = "AIC")#logit,probit,log-log
+glm.diag.plots(res.glm, glmdiag = glm.diag(res.glm), subset = NULL,iden = FALSE, ret = FALSE)
+sbpsq=SAheart$sbp^(2)
+adipositysq=SAheart$adiposity^2
+obesitysq=SAheart$obesity^3
+alcoholsq=SAheart$alcohol^2
+res.glm1=glm(chd~sbp+sbpsq+tobacco+ldl+adiposity+adipositysq+ famhist +typea+obesity+obesitysq+age+alcohol+alcoholsq,family=binomial(link="logit"),data=SAheart)##cloglog, logit, probit
+summary(res.glm1)
+exp(res.glm1$coef)
+###library(Hmisc)
+temp <- layout(matrix(1:9, nrow=3 , byrow=T)) ## 2 by 4
+ layout.show(temp)
+for (i in c(1:4,6:9)){
+plsmo(SAheart[,i],res.glm$fitted.values, method="lowess",  iter=0, bass=0, f=2/3,group=SAheart$chd)
+}
+
+
+###two stage modeling
+#####################
+library(stats)
+model1=lm(ldl ~ sbp + tobacco +famhist +typea+alcohol+age+obesity+adiposity,data=SAheart)
+summary(model1)
+extractAIC(model1)
+yhat1=fitted.values(model1)
+model2=glm(chd ~ yhat1+sbp + tobacco +famhist +typea+age+obesity+adiposity,data=SAheart,family=binomial(link="logit"))
+summary(model2)
+model2=glm(chd ~ yhat1+ sbp+ tobacco +famhist +typea+age+alcohol,data=SAheart,family=binomial(link="logit"))
+summary(model2)
+model3=glm(chd ~ yhat1+ sbp + tobacco +famhist +typea+alcohol+obesity+adiposity,data=SAheart,family=binomial(link="logit"))
+summary(model2)
+model4=glm(chd ~ yhat1 + tobacco +famhist +typea+age,data=SAheart,family=binomial(link="logit"))
+summary(model2)
+
+###boosting
+########################
+
+
+glm1=glm(chd~age+famhist,family=binomial(link="logit"),data=SAheart)
+summary(glm1)
+glm2=glm(chd~age+tobacco+famhist,family=binomial(link="logit"),data=SAheart)summary(glm2)
+glm3=glm(chd~age+tobacco+famhist*ldl,family=binomial(link="logit"),data=SAheart)
+summary(glm3)
+glm4=glm(chd~age+tobacco+ldl*famhist+typea,family=binomial(link="logit"),data=SAheart)
+summary(glm4)#good model
+glm5=glm(chd~tobacco*ldl+famhist*ldl+typea*tobacco+age,family=binomial(link="logit"),data=SAheart)
+summary(glm5)#good model
+glm6=glm(chd~tobacco*ldl+famhist*ldl+typea*tobacco+age*ldl,family=binomial(link="logit"),data=SAheart)
+summary(glm6)#vey good model
+glm7=glm(chd~tobacco+ldl+famhist*ldl+typea*tobacco+age*ldl,family=binomial(link="logit"),data=SAheart)
+summary(glm7)#good model 
+cv.err.5 <- cv.glm(SAheart, glm7, K = 7)
+
+cv.err.5$delta
+coplot(chd~age|ldl, data=SAheart, 
+      panel = function(x, y, ...){
+      points(x, y, cex=0.8) 
+      lines(x, lm(y~x)$fitted.value, lwd = 1, col="steelblue") 
+     })
+library(mboost(
+ctrl <- boost_control(mstop = 500, center = TRUE(
+glmboost.obj<-glmboost(factor(chd)~.,data=SAheart,family = Binomial(), control = ctrl(
+summary(glmboost.obj(
+maic <- AIC(glmboost.obj, method="classical ("
+maic
+plot(glmboost.obj,ylim=range(coef(glmboost.obj, which=names(SAheart.dat))))
+glmboost.cv <- cvrisk(glmboost.obj, papply= lapply)
+glmboost.cv
