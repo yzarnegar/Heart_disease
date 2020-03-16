@@ -1,1 +1,16 @@
 
+The used data is from men from heart-disease high-risk group.
+Following variables were considered as potential predictors for heart disease.
+
+sbp		systolic blood pressure
+tobacco		cumulative tobacco (kg)
+ldl		low densiity lipoprotein cholesterol
+adiposity
+famhist		family history of heart disease (Present, Absent)
+typea		type-A behavior
+obesity
+alcohol		current alcohol consumption
+age		age at onset
+chd		response, coronary heart disease
+
+https://web.stanford.edu/~hastie/ElemStatLearn/datasets/SAheart.info.txt
