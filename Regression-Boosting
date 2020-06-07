@@ -108,7 +108,7 @@ coplot(chd~age|ldl, data=SAheart,
       points(x, y, cex=0.8) 
       lines(x, lm(y~x)$fitted.value, lwd = 1, col="steelblue") 
      })
-library(mboost(
+library(mboost)
 ctrl <- boost_control(mstop = 500, center = TRUE(
 glmboost.obj<-glmboost(factor(chd)~.,data=SAheart,family = Binomial(), control = ctrl(
 summary(glmboost.obj(
